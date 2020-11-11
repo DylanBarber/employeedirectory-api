@@ -22,8 +22,31 @@ export class UserService implements IUserService {
 
     }
 
-    update(toUpdate: UserModel): Promise<UserModel> {
-        throw new Error("Method not implemented.");
+    async update(toUpdate: UserModel): Promise<UserModel> {
+        
+        if (toUpdate.id === null || toUpdate.id === undefined) {
+            throw new Error('Id must be supplied on update');
+        }
+
+        const userRepo = sequelizeEmp.getRepository(UserEntity);
+
+        const result = await userRepo.findOne({
+            where: {
+                id: toUpdate.id
+            }
+        });
+
+        if (result === null) {
+            throw new Error(`User ${toUpdate.id} not found!`);
+        }
+
+        result.email = toUpdate.email;
+        result.firstName = toUpdate.firstName;
+        result.lastName = toUpdate.lastName;
+        result.active = toUpdate.active;
+        result.password = toUpdate.password;
+
+        return this.entityToModel(await result.save());
     }
 
     delete(toDelete: UserModel): Promise<void> {
@@ -40,7 +63,7 @@ export class UserService implements IUserService {
             password: entity.password,
             active: entity.active
         }
-
+        
         return userModel;
     }
     
