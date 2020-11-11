@@ -13,7 +13,7 @@ export class User {
 
     active: boolean;
 
-    password: string;
+    password?: string;
 
     deletedAt?: Date;
 }

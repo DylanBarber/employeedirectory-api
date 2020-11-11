@@ -2,6 +2,7 @@ import { IUserService } from "./IUserService";
 import { User as UserModel } from "../models/User";
 import { User as UserEntity } from "../entities/User";
 import { sequelizeEmp } from "./sequelizeEmp";
+import * as bcrypt from 'bcrypt';
 
 
 export class UserService implements IUserService {
@@ -15,6 +16,12 @@ export class UserService implements IUserService {
         if (toCreate.id !== null && toCreate.id !== undefined) {
             throw new Error('Id cannot be supplied on create');
         }
+
+        if (toCreate.password === null || toCreate.password === undefined) {
+            throw new Error('A new user must have a password');
+        }
+
+        toCreate.password = await this.generateHash(toCreate.password);
 
         const userRepo = sequelizeEmp.getRepository(UserEntity);
 
@@ -44,9 +51,28 @@ export class UserService implements IUserService {
         result.firstName = toUpdate.firstName;
         result.lastName = toUpdate.lastName;
         result.active = toUpdate.active;
-        result.password = toUpdate.password;
+        
+        if (toUpdate.password !== undefined && toUpdate.password !== null) {
+            result.password = await this.generateHash(toUpdate.password);
+        }
 
         return this.entityToModel(await result.save());
+    }
+
+    async generateHash(password: string): Promise<string> {
+        try {
+            return await bcrypt.hash(password, 10);
+        } catch (err) {
+            throw new Error('issue with generating Bcrypt hash');
+        }
+    }
+
+    async compareHash(password: string, hash: string): Promise<boolean> {
+        try {
+            return await bcrypt.compare(password, hash);
+        } catch (err) {
+            throw new Error('issue with comparing Bcrypt hash');
+        }
     }
 
     delete(toDelete: UserModel): Promise<void> {
@@ -60,10 +86,9 @@ export class UserService implements IUserService {
             firstName: entity.firstName,
             lastName: entity.lastName,
             email: entity.email,
-            password: entity.password,
             active: entity.active
         }
-        
+
         return userModel;
     }
     
